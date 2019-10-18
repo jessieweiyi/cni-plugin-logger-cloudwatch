@@ -24,3 +24,5 @@ coverage.html
 reports/
 report.json
 report.json.html
+
+cni-plugin-logger-cloudwatch
