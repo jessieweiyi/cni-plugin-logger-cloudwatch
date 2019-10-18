@@ -1,0 +1,26 @@
+# golang output binary directory
+bin
+
+# vscode
+.vscode
+
+#idea
+.idea
+.idea/workspace.xml
+.idea/vcs.xml
+.idea/adv-caja-x-api.iml
+.idea/modules.xml
+
+#delve
+debug.test
+
+#osx
+.DS_Store
+
+artifact
+*.zip
+*.out
+coverage.html
+reports/
+report.json
+report.json.html
