@@ -34,7 +34,7 @@ type PluginConf struct {
 type CNILogEntry struct {
 	CommandType  string `json:"commandType"`
 	NetNamespace string `json:"netNamespace"`
-	Data         []byte `json:"data"`
+	StdinData    string `json:"stdinData"`
 }
 
 func parseConfig(stdin []byte) (*PluginConf, error) {
@@ -84,7 +84,8 @@ func cmdAdd(args *skel.CmdArgs) error {
 		return fmt.Errorf("must be called as chained plugin")
 	}
 
-	debugError := cniDebug(conf.Debug, conf.DebugDir, args, "add")
+	cniLog := createLogEntry(args, "add")
+	debugError := cniDebug(conf.Debug, conf.DebugDir, args.ContainerID, args.IfName, cniLog)
 
 	if debugError != nil {
 		return debugError
@@ -102,7 +103,8 @@ func cmdDel(args *skel.CmdArgs) error {
 	}
 	_ = conf
 
-	debugError := cniDebug(conf.Debug, conf.DebugDir, args, "del")
+	cniLog := createLogEntry(args, "del")
+	debugError := cniDebug(conf.Debug, conf.DebugDir, args.ContainerID, args.IfName, cniLog)
 
 	if debugError != nil {
 		return debugError
@@ -120,21 +122,23 @@ func cmdCheck(args *skel.CmdArgs) error {
 	return fmt.Errorf("not implemented")
 }
 
-func cniDebug(enabled bool, dir string, args *skel.CmdArgs, action string) error {
+func createLogEntry(args *skel.CmdArgs, action string) CNILogEntry {
+	return CNILogEntry{
+		NetNamespace: args.Netns,
+		StdinData:    string(args.StdinData),
+		CommandType:  action,
+	}
+}
+
+func cniDebug(enabled bool, dir string, containerID string, ifName string, cniLog CNILogEntry) error {
 	if !enabled {
 		return nil
 	}
-	dFilePath := filepath.Join(dir, args.ContainerID, args.IfName)
+	dFilePath := filepath.Join(dir, containerID, ifName)
 	if err := os.MkdirAll(dFilePath, 0770); err != nil {
 		return fmt.Errorf("Failed to create log folder")
 	}
-	stdinFile := fmt.Sprintf("%s/%s_%v.log", dFilePath, action, time.Now().Unix())
-
-	cniLog := CNILogEntry{
-		NetNamespace: args.Netns,
-		Data:         args.StdinData,
-		CommandType:  action,
-	}
+	stdinFile := fmt.Sprintf("%s/%v.log", dFilePath, time.Now().Unix())
 
 	cniLogData, marshalError := json.MarshalIndent(cniLog, "", " ")
 
