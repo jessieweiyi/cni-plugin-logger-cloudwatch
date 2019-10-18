@@ -28,7 +28,7 @@ type PluginConf struct {
 	Debug    bool   `json:"debug"`
 	DebugDir string `json:"debugDir"`
 
-	LogGroupName string `json:"debugDir"`
+	LogGroupName string `json:"logGroupName"`
 }
 
 type CNILogEntry struct {
