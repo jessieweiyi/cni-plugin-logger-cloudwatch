@@ -13,6 +13,8 @@ import (
 	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/cni/pkg/version"
 
+	"github.com/jessieweiyi/cni-plugin-logger-cloudwatch/pkg/logger"
+
 	bv "github.com/containernetworking/plugins/pkg/utils/buildversion"
 )
 
@@ -91,6 +93,12 @@ func cmdAdd(args *skel.CmdArgs) error {
 		return debugError
 	}
 
+	logError := cniLogCloudWatch(conf.LogGroupName, args.ContainerID, args.IfName, cniLog)
+
+	if logError != nil {
+		return logError
+	}
+
 	// Pass through the result for the next plugin
 	return types.PrintResult(conf.PrevResult, conf.CNIVersion)
 }
@@ -108,6 +116,12 @@ func cmdDel(args *skel.CmdArgs) error {
 
 	if debugError != nil {
 		return debugError
+	}
+
+	logError := cniLogCloudWatch(conf.LogGroupName, args.ContainerID, args.IfName, cniLog)
+
+	if logError != nil {
+		return logError
 	}
 
 	return nil
@@ -148,6 +162,22 @@ func cniDebug(enabled bool, dir string, containerID string, ifName string, cniLo
 
 	if err := ioutil.WriteFile(stdinFile, cniLogData, 0770); err != nil {
 		return fmt.Errorf("Failed to write log")
+	}
+
+	return nil
+}
+
+func cniLogCloudWatch(logGroupName string, containerID string, ifName string, cniLog CNILogEntry) error {
+	logStreamName := fmt.Sprintf("/%s/%s", containerID, ifName)
+
+	cniLogData, marshalError := json.MarshalIndent(cniLog, "", " ")
+
+	if marshalError != nil {
+		return fmt.Errorf("Failed to marshal log data")
+	}
+
+	if err := logger.Log(logGroupName, logStreamName, string(cniLogData)); err != nil {
+		return fmt.Errorf("Failed to publish log to aws cloudwatch")
 	}
 
 	return nil
