@@ -1,12 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"path/filepath"
-	"time"
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
@@ -17,12 +12,6 @@ import (
 
 	bv "github.com/containernetworking/plugins/pkg/utils/buildversion"
 )
-
-type CNILogEntry struct {
-	CommandType  string `json:"commandType"`
-	NetNamespace string `json:"netNamespace"`
-	StdinData    string `json:"stdinData"`
-}
 
 // cmdAdd is called for ADD requests
 func cmdAdd(args *skel.CmdArgs) error {
@@ -35,18 +24,8 @@ func cmdAdd(args *skel.CmdArgs) error {
 		return fmt.Errorf("must be called as chained plugin")
 	}
 
-	cniLog := createLogEntry(args, "add")
-	debugError := cniDebug(conf.Debug, conf.DebugDir, args.ContainerID, args.IfName, cniLog)
-
-	if debugError != nil {
-		return debugError
-	}
-
-	logError := cniLogCloudWatch(conf.LogGroupName, args.ContainerID, args.IfName, cniLog)
-
-	if logError != nil {
-		return logError
-	}
+	logger := logger.NewLogger(conf.Debug, conf.DebugDir, conf.LogGroupName)
+	logger.Log(args, "add")
 
 	// Pass through the result for the next plugin
 	return types.PrintResult(conf.PrevResult, conf.CNIVersion)
@@ -60,18 +39,8 @@ func cmdDel(args *skel.CmdArgs) error {
 	}
 	_ = conf
 
-	cniLog := createLogEntry(args, "del")
-	debugError := cniDebug(conf.Debug, conf.DebugDir, args.ContainerID, args.IfName, cniLog)
-
-	if debugError != nil {
-		return debugError
-	}
-
-	logError := cniLogCloudWatch(conf.LogGroupName, args.ContainerID, args.IfName, cniLog)
-
-	if logError != nil {
-		return logError
-	}
+	logger := logger.NewLogger(conf.Debug, conf.DebugDir, conf.LogGroupName)
+	logger.Log(args, "del")
 
 	return nil
 }
@@ -83,51 +52,4 @@ func main() {
 func cmdCheck(args *skel.CmdArgs) error {
 	// TODO: implement
 	return fmt.Errorf("not implemented")
-}
-
-func createLogEntry(args *skel.CmdArgs, action string) CNILogEntry {
-	return CNILogEntry{
-		NetNamespace: args.Netns,
-		StdinData:    string(args.StdinData),
-		CommandType:  action,
-	}
-}
-
-func cniDebug(enabled bool, dir string, containerID string, ifName string, cniLog CNILogEntry) error {
-	if !enabled {
-		return nil
-	}
-	dFilePath := filepath.Join(dir, containerID, ifName)
-	if err := os.MkdirAll(dFilePath, 0770); err != nil {
-		return fmt.Errorf("Failed to create log folder")
-	}
-	stdinFile := fmt.Sprintf("%s/%v.log", dFilePath, time.Now().Unix())
-
-	cniLogData, marshalError := json.MarshalIndent(cniLog, "", " ")
-
-	if marshalError != nil {
-		return fmt.Errorf("Failed to marshal log data")
-	}
-
-	if err := ioutil.WriteFile(stdinFile, cniLogData, 0770); err != nil {
-		return fmt.Errorf("Failed to write log")
-	}
-
-	return nil
-}
-
-func cniLogCloudWatch(logGroupName string, containerID string, ifName string, cniLog CNILogEntry) error {
-	logStreamName := fmt.Sprintf("/%s/%s", containerID, ifName)
-
-	cniLogData, marshalError := json.MarshalIndent(cniLog, "", " ")
-
-	if marshalError != nil {
-		return fmt.Errorf("Failed to marshal log data")
-	}
-
-	if err := logger.Log(logGroupName, logStreamName, string(cniLogData)); err != nil {
-		return fmt.Errorf("Failed to publish log to aws cloudwatch")
-	}
-
-	return nil
 }

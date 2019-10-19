@@ -10,7 +10,15 @@ import (
 	"fmt"
 )
 
-func Log(logGroupName string, logStreamName string, logData string) error {
+type CloudWatchLogger struct {
+	LogGroupName         string
+	LogStreamName        string
+	CloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
+}
+
+func NewCloudWatchLogger(logGroupName string, containerID string, ifName string) (*CloudWatchLogger, error) {
+	logStreamName := fmt.Sprintf("/%s/%s", containerID, ifName)
+
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 		Config: aws.Config{
@@ -25,7 +33,7 @@ func Log(logGroupName string, logStreamName string, logData string) error {
 	})
 
 	if err0 != nil {
-		return fmt.Errorf("Failed to describe log group")
+		return nil, fmt.Errorf("Failed to describe log group")
 	}
 
 	if len(result0.LogGroups) == 0 {
@@ -34,13 +42,21 @@ func Log(logGroupName string, logStreamName string, logData string) error {
 		})
 
 		if err1 != nil {
-			return fmt.Errorf("Failed to create log group")
+			return nil, fmt.Errorf("Failed to create log group")
 		}
 	}
 
-	result1, err1 := svc.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
-		LogGroupName:        aws.String(logGroupName),
-		LogStreamNamePrefix: aws.String(logStreamName),
+	return &CloudWatchLogger{
+		LogGroupName:         logGroupName,
+		LogStreamName:        logStreamName,
+		CloudWatchLogsClient: svc,
+	}, nil
+}
+
+func (cwl *CloudWatchLogger) Log(cniLogData []byte) error {
+	result1, err1 := cwl.CloudWatchLogsClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
+		LogGroupName:        aws.String(cwl.LogGroupName),
+		LogStreamNamePrefix: aws.String(cwl.LogStreamName),
 	})
 
 	if err1 != nil {
@@ -50,9 +66,9 @@ func Log(logGroupName string, logStreamName string, logData string) error {
 	var uploadSequenceToken *string
 
 	if len(result1.LogStreams) == 0 {
-		_, err2 := svc.CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
-			LogGroupName:  aws.String(logGroupName),
-			LogStreamName: aws.String(logStreamName),
+		_, err2 := cwl.CloudWatchLogsClient.CreateLogStream(&cloudwatchlogs.CreateLogStreamInput{
+			LogGroupName:  aws.String(cwl.LogGroupName),
+			LogStreamName: aws.String(cwl.LogStreamName),
 		})
 
 		if err2 != nil {
@@ -64,12 +80,12 @@ func Log(logGroupName string, logStreamName string, logData string) error {
 
 	timestamp := aws.TimeUnixMilli(time.Now())
 
-	_, err3 := svc.PutLogEvents(&cloudwatchlogs.PutLogEventsInput{
-		LogGroupName:  aws.String(logGroupName),
-		LogStreamName: aws.String(logStreamName),
+	_, err3 := cwl.CloudWatchLogsClient.PutLogEvents(&cloudwatchlogs.PutLogEventsInput{
+		LogGroupName:  aws.String(cwl.LogGroupName),
+		LogStreamName: aws.String(cwl.LogStreamName),
 		LogEvents: []*cloudwatchlogs.InputLogEvent{
 			&cloudwatchlogs.InputLogEvent{
-				Message:   aws.String(logData),
+				Message:   aws.String(string(cniLogData)),
 				Timestamp: &timestamp,
 			},
 		},
