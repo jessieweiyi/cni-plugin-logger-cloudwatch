@@ -8,22 +8,22 @@ import (
 	"time"
 )
 
-type FileLogger struct {
+type FilePublisher struct {
 	DirPath string
 }
 
-func NewFileLogger(dir string, containerID string, ifName string) (*FileLogger, error) {
+func NewFilePublisher(dir string, containerID string, ifName string) (*FilePublisher, error) {
 	dirPath := filepath.Join(dir, containerID, ifName)
 	if err := os.MkdirAll(dirPath, 0770); err != nil {
 		return nil, fmt.Errorf("Failed to create log folder")
 	}
 
-	return &FileLogger{
+	return &FilePublisher{
 		DirPath: dirPath,
 	}, nil
 }
 
-func (fl *FileLogger) Log(cniLogData []byte) error {
+func (fl *FilePublisher) Publish(cniLogData []byte) error {
 	filePath := fmt.Sprintf("%s/%v.log", fl.DirPath, time.Now().Unix())
 
 	if err := ioutil.WriteFile(filePath, cniLogData, 0770); err != nil {

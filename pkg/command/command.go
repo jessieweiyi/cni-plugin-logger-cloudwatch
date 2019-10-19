@@ -20,7 +20,11 @@ func CmdAdd(args *skel.CmdArgs) error {
 		return fmt.Errorf("must be called as chained plugin")
 	}
 
-	logger := logger.NewLogger(conf.Debug, conf.DebugDir, conf.LogGroupName)
+	logger, err := logger.GetLogger(conf, args.ContainerID, args.IfName)
+	if err != nil {
+		return fmt.Errorf("Failed to create logger")
+	}
+
 	logger.Log(args, "add")
 
 	// Pass through the result for the next plugin
@@ -35,7 +39,10 @@ func CmdDel(args *skel.CmdArgs) error {
 	}
 	_ = conf
 
-	logger := logger.NewLogger(conf.Debug, conf.DebugDir, conf.LogGroupName)
+	logger, err := logger.GetLogger(conf, args.ContainerID, args.IfName)
+	if err != nil {
+		return fmt.Errorf("Failed to create logger")
+	}
 	logger.Log(args, "del")
 
 	return nil
