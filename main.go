@@ -177,6 +177,7 @@ func cniLogCloudWatch(logGroupName string, containerID string, ifName string, cn
 	}
 
 	if err := logger.Log(logGroupName, logStreamName, string(cniLogData)); err != nil {
+		fmt.Println("Error", err)
 		return fmt.Errorf("Failed to publish log to aws cloudwatch")
 	}
 
