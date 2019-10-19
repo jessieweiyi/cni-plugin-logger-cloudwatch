@@ -10,28 +10,13 @@ import (
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
-	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/cni/pkg/version"
 
+	"github.com/jessieweiyi/cni-plugin-logger-cloudwatch/pkg/config"
 	"github.com/jessieweiyi/cni-plugin-logger-cloudwatch/pkg/logger"
 
 	bv "github.com/containernetworking/plugins/pkg/utils/buildversion"
 )
-
-type PluginConf struct {
-	types.NetConf
-	RuntimeConfig *struct {
-		SampleConfig map[string]interface{} `json:"sample"`
-	} `json:"runtimeConfig"`
-
-	RawPrevResult *map[string]interface{} `json:"prevResult"`
-	PrevResult    *current.Result         `json:"-"`
-
-	Debug    bool   `json:"debug"`
-	DebugDir string `json:"debugDir"`
-
-	LogGroupName string `json:"logGroupName"`
-}
 
 type CNILogEntry struct {
 	CommandType  string `json:"commandType"`
@@ -39,45 +24,9 @@ type CNILogEntry struct {
 	StdinData    string `json:"stdinData"`
 }
 
-func parseConfig(stdin []byte) (*PluginConf, error) {
-	conf := PluginConf{}
-
-	if err := json.Unmarshal(stdin, &conf); err != nil {
-		return nil, fmt.Errorf("failed to parse network configuration: %v", err)
-	}
-
-	// Parse previous result. Remove this if your plugin is not chained.
-	if conf.RawPrevResult != nil {
-		resultBytes, err := json.Marshal(conf.RawPrevResult)
-		if err != nil {
-			return nil, fmt.Errorf("could not serialize prevResult: %v", err)
-		}
-		res, err := version.NewResult(conf.CNIVersion, resultBytes)
-		if err != nil {
-			return nil, fmt.Errorf("could not parse prevResult: %v", err)
-		}
-		conf.RawPrevResult = nil
-		conf.PrevResult, err = current.NewResultFromResult(res)
-		if err != nil {
-			return nil, fmt.Errorf("could not convert result to current version: %v", err)
-		}
-	}
-	// End previous result parsing
-
-	if conf.Debug == true && conf.DebugDir == "" {
-		return nil, fmt.Errorf("debugDir must be specified if debug is set to true")
-	}
-
-	if conf.LogGroupName == "" {
-		return nil, fmt.Errorf("logGroupName must be specified")
-	}
-
-	return &conf, nil
-}
-
 // cmdAdd is called for ADD requests
 func cmdAdd(args *skel.CmdArgs) error {
-	conf, err := parseConfig(args.StdinData)
+	conf, err := config.ParseConfig(args.StdinData)
 	if err != nil {
 		return err
 	}
@@ -105,7 +54,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 
 // cmdDel is called for DELETE requests
 func cmdDel(args *skel.CmdArgs) error {
-	conf, err := parseConfig(args.StdinData)
+	conf, err := config.ParseConfig(args.StdinData)
 	if err != nil {
 		return err
 	}
@@ -177,7 +126,6 @@ func cniLogCloudWatch(logGroupName string, containerID string, ifName string, cn
 	}
 
 	if err := logger.Log(logGroupName, logStreamName, string(cniLogData)); err != nil {
-		fmt.Println("Error", err)
 		return fmt.Errorf("Failed to publish log to aws cloudwatch")
 	}
 
