@@ -13,6 +13,9 @@ import (
 func Log(logGroupName string, logStreamName string, logData string) error {
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
+		Config: aws.Config{
+			Region: aws.String("ap-southeast-2"),
+		},
 	}))
 
 	svc := cloudwatchlogs.New(sess)
