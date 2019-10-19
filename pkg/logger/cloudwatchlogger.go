@@ -22,6 +22,7 @@ func Log(logGroupName string, logStreamName string, logData string) error {
 	})
 
 	if err0 != nil {
+		fmt.Println("Error", err0)
 		return fmt.Errorf("Failed to describe log group")
 	}
 
