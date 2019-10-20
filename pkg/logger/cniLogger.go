@@ -7,16 +7,19 @@ import (
 	"github.com/containernetworking/cni/pkg/skel"
 )
 
+// CNILogger logs the cni requests
 type CNILogger struct {
 	Publishers []Publisher
 }
 
+// NewCNILogger returns a instance of CNILogger
 func NewCNILogger(publishers []Publisher) Logger {
 	return &CNILogger{
 		Publishers: publishers,
 	}
 }
 
+// Log creates log entry and call registered publishers
 func (l *CNILogger) Log(args *skel.CmdArgs, action string) {
 	cniLog := NewCNILogEntry(args, action)
 

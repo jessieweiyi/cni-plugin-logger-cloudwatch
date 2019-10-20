@@ -9,12 +9,14 @@ import (
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 )
 
+// CloudWatchLogsPublisher publishes the log data to CloudWatch logs
 type CloudWatchLogsPublisher struct {
 	LogGroupName         string
 	LogStreamName        string
 	CloudWatchLogsClient *cloudwatchlogs.CloudWatchLogs
 }
 
+// NewCloudWatchLogsPublisher returns a new instance of CloudWatchLogsPublisher
 func NewCloudWatchLogsPublisher(logGroupName string, containerID string, ifName string) (*CloudWatchLogsPublisher, error) {
 	logStreamName := fmt.Sprintf("/%s/%s", containerID, ifName)
 
@@ -52,6 +54,7 @@ func NewCloudWatchLogsPublisher(logGroupName string, containerID string, ifName 
 	}, nil
 }
 
+// Publish publishes the log data to CloudWatch logs
 func (cwl *CloudWatchLogsPublisher) Publish(cniLogData []byte) error {
 	result0, err0 := cwl.CloudWatchLogsClient.DescribeLogStreams(&cloudwatchlogs.DescribeLogStreamsInput{
 		LogGroupName:        aws.String(cwl.LogGroupName),

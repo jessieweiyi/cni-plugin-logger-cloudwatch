@@ -9,6 +9,7 @@ import (
 	"github.com/containernetworking/cni/pkg/version"
 )
 
+// PluginConf is the configuration json passed from the cni configuration.
 type PluginConf struct {
 	types.NetConf
 	RuntimeConfig *struct {
@@ -24,6 +25,7 @@ type PluginConf struct {
 	LogGroupName string `json:"logGroupName"`
 }
 
+// ParseConfig parses cni configuration into PluginConf
 func ParseConfig(stdin []byte) (*PluginConf, error) {
 	conf := PluginConf{}
 

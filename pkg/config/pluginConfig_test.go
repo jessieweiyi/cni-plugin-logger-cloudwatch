@@ -51,9 +51,9 @@ func TestConfig_ParseConfig_Success_DebugEnabled(t *testing.T) {
 
 	conf, err := config.ParseConfig([]byte(stdinData))
 	assert.NoError(t, err)
-	assert.Equal(t, conf.Debug, true)
-	assert.Equal(t, conf.DebugDir, "/var/vcap/data/cni-configs/net-debug")
-	assert.Equal(t, conf.LogGroupName, "cni-plugin-logger-cloudwatch")
+	assert.Equal(t, true, conf.Debug)
+	assert.Equal(t, "/var/vcap/data/cni-configs/net-debug", conf.DebugDir)
+	assert.Equal(t, "cni-plugin-logger-cloudwatch", conf.LogGroupName)
 }
 
 func TestCoinfig_ParseConfig_Error_MissingLogGroupName(t *testing.T) {

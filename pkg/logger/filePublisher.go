@@ -8,10 +8,12 @@ import (
 	"time"
 )
 
+// FilePublisher a implementation of Publisher to publish the log to local file system
 type FilePublisher struct {
 	DirPath string
 }
 
+// NewFilePublisher return a new instance of FilePublisher
 func NewFilePublisher(dir string, containerID string, ifName string) (*FilePublisher, error) {
 	dirPath := filepath.Join(dir, containerID, ifName)
 	if err := os.MkdirAll(dirPath, 0770); err != nil {
@@ -23,6 +25,7 @@ func NewFilePublisher(dir string, containerID string, ifName string) (*FilePubli
 	}, nil
 }
 
+// Publish publishes the log to local file system
 func (fl *FilePublisher) Publish(cniLogData []byte) error {
 	filePath := fmt.Sprintf("%s/%v.log", fl.DirPath, time.Now().Unix())
 

@@ -6,7 +6,17 @@ import (
 	"github.com/jessieweiyi/cni-plugin-logger-cloudwatch/pkg/config"
 )
 
-func GetLogger(conf *config.PluginConf, containerID string, ifName string) (Logger, error) {
+// Factory interfact for all logger factories
+type Factory interface {
+	GetLogger(conf *config.PluginConf, containerID string, ifName string) (Logger, error)
+}
+
+// CNILoggerFactory returns a instance of CNILogger
+type CNILoggerFactory struct {
+}
+
+// GetLogger returns a instance of CNILogger
+func (clf *CNILoggerFactory) GetLogger(conf *config.PluginConf, containerID string, ifName string) (Logger, error) {
 	var publishers []Publisher
 	if conf.Debug {
 		filePublisher, flError := NewFilePublisher(conf.DebugDir, containerID, ifName)
